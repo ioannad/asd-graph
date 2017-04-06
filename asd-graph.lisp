@@ -4,7 +4,7 @@
 
 
 This utility uses Graphviz Draw to visualise the dependencies
-declared in a Common Lisp `<package-name>.asd` file.
+declared in a Common Lisp `<system-name>.asd` file.
 
 See REAMDE.md file for more details.
 
@@ -105,13 +105,16 @@ See REAMDE.md file for more details.
 ;; ## Outputting dot syntax
 
 (defvar *dot-settings*
-  "splines=ortho;~%rankdir = LR;~%node [shape=box];")
+  "
+splines=ortho;
+rankdir = LR;
+node [shape=box];")
 
 (defvar *dot-ending*
   "}")
 
-(defun dot-beginning (package-name)
-  (format nil "digraph ~a {" package-name))
+(defun dot-beginning (system-name)
+  (format nil "digraph ~a {" system-name))
 
 (defun dep->dot (dep)
   (destructuring-bind (file dep-list) dep
@@ -119,11 +122,11 @@ See REAMDE.md file for more details.
 	     (format nil "~a -> ~a;" file d)))
       (format nil "~{~a~%~}" (mapcar #'format% dep-list)))))
 
-(defun asd->dot (path file-name package-name)
-    (with-open-file (out (filename path package-name "dot")
+(defun asd->dot (path file-name system-name)
+    (with-open-file (out (filename path system-name "dot")
 			 :direction :output
 			 :if-exists :supersede)
-      (format out (dot-beginning package-name))
+      (format out (dot-beginning system-name))
       (format out *dot-settings*)
       (loop for dep in (deps file-name)
 	 do (format out (dep->dot dep)))
@@ -133,14 +136,14 @@ See REAMDE.md file for more details.
 
 (defun asd-graph (file-name &key (output-dir nil))
   (destructuring-bind
-	(path package-name) (split-path file-name)
+	(path system-name) (split-path file-name)
     (unless output-dir
       (setf output-dir path))
-    (asd->dot output-dir file-name package-name)
+    (asd->dot output-dir file-name system-name)
     (external-program:run
      "/usr/bin/dot"
      (list
       "-Tpdf"
-      (filename output-dir package-name "dot")
+      (filename output-dir system-name "dot")
       "-o"
-      (filename output-dir package-name "pdf")))))
+      (filename output-dir system-name "pdf")))))
