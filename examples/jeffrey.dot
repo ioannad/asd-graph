@@ -1,0 +1,25 @@
+digraph jeffrey {splines=ortho;
+rankdir = LR;
+node [shape=box];"read" -> "graph";
+"read" -> "parse";
+"read" -> "process-strings";
+"predicates" -> "graph";
+"predicates" -> "read";
+"draw" -> "graph";
+"draw" -> "read";
+"draw" -> "predicates";
+"labelmaker" -> "graph";
+"labelmaker" -> "read";
+"main" -> "graph";
+"main" -> "read";
+"main" -> "predicates";
+"main" -> "draw";
+"latex-in-html" -> "graph";
+"website" -> "main";
+"website" -> "parse-web-input";
+"website" -> "latex-in-html";
+"example-form-groups" -> "main";
+"test" -> "graph";
+"test" -> "read";
+"test" -> "predicates";
+}

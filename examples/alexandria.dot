@@ -1,0 +1,21 @@
+digraph alexandria {splines=ortho;
+rankdir = LR;
+node [shape=box];"io" -> "macros";
+"io" -> "lists";
+"io" -> "types";
+"macros" -> "strings";
+"macros" -> "symbols";
+"hash-tables" -> "macros";
+"control-flow" -> "definitions";
+"control-flow" -> "macros";
+"functions" -> "symbols";
+"functions" -> "macros";
+"lists" -> "functions";
+"types" -> "symbols";
+"types" -> "lists";
+"arrays" -> "types";
+"sequences" -> "lists";
+"sequences" -> "types";
+"numbers" -> "sequences";
+"features" -> "control-flow";
+}
