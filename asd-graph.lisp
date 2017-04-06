@@ -65,7 +65,7 @@ See REAMDE.md file for more details.
 
 ;; ## Extracting dependencies
 ;;
-;; References to \"packages\" are removed.
+;; References to \"packages\" or "\"package\"" are removed.
 
 (defun get-deps (file-name)
   (with-open-file (in file-name
@@ -74,7 +74,10 @@ See REAMDE.md file for more details.
     (maxpc:parse in (=deps))))
 
 (defun packages-string-p (string)
-  (equal string "\"packages\""))
+  (member string
+	  (list "\"packages\""
+		"\"package\"")
+	  :test 'equal))
 
 (defun deps (file-name)
   (loop for (file deps) in (get-deps file-name)
