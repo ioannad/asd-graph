@@ -134,7 +134,7 @@ node [shape=box];")
 
 ;; ## The main function
 
-(defun asd-graph (file-name &key (output-dir nil))
+(defun asd-graph (file-name &key (output-dir nil) (format "svg"))
   (destructuring-bind
 	(path system-name) (split-path file-name)
     (unless output-dir
@@ -143,7 +143,7 @@ node [shape=box];")
     (external-program:run
      "/usr/bin/dot"
      (list
-      "-Tpdf"
+      (format nil "-T~a" format)
       (filename output-dir system-name "dot")
       "-o"
-      (filename output-dir system-name "pdf")))))
+      (filename output-dir system-name format)))))
