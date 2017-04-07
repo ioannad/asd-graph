@@ -50,7 +50,8 @@ http://www.graphviz.org/Documentation/dotguide.pdf
 For now, only the simplest <system-name>.asd formats are supported,
 e.g.:
 
-`(defsystem "hello-lisp"
+```common-lisp
+(defsystem "hello-lisp"
   :description "hello-lisp: a sample Lisp system."
   :version "0.0.1"
   :author "Joe User <joe@example.com>"
@@ -58,7 +59,8 @@ e.g.:
   :depends-on ("optima.ppcre" "command-line-arguments")
   :components ((:file "packages")
                (:file "macros" :depends-on ("packages"))
-               (:file "hello" :depends-on ("macros"))))`
+               (:file "hello" :depends-on ("macros"))))
+```
 
 This example is from the [ASDF Manual](https://common-lisp.net/project/asdf/asdf.html#The-defsystem-form)
 
