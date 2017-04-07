@@ -10,7 +10,7 @@ declared in a Common Lisp `<system-name>.asd` file.
 
 * Graphviz (dot should be in `/usr/bin/dot`)
 
-* A Common Lisp REPL (CCL or SBCL tested)
+* A Common Lisp REPL (CCL or SBCL, tested)
 
 * Quicklisp
 
@@ -22,22 +22,17 @@ to your `<system-name>.asd`, then evaluate:
 
 `(asd-graph <file-name>)`
 
-or
+optional keywords:
 
-`(asd-graph <file-name> :output-dir <output-dir>)`
+`:output-dir <output-dir>` and `:format <fmt>`
 
-This will create a dot and a pdf file in the same directory as 
-`<file-name>` or in `<output-dir>` respectively. 
-
-If you prefer a different output (png, svg, `<etc>`), then run
-from the same directory as your .dot file, in a terminal, the
-following command:
-
-`dot -T<etc> <system-name>.dot -o <output-file-name>`
-
-where `<etc>` is the ending of your preferred format.
+This will create a dot and an svg (or `<fmt>` if keyword :format was used) file in the same
+directory as `<file-name>`, or in `<output-dir>` if keyword
+:output-dir was used.
 
 ### Formats supported by dot:
+
+`<fmt>` can take one of the following values:
 
 canon, dot, fig, gd, gif, hpgl, imap, cmap, mif, mp, pcl, pic,
 plain (ascii), png, ps, ps2, svg, vrml, vtx, wbmp.
@@ -45,9 +40,9 @@ plain (ascii), png, ps, ps2, svg, vrml, vtx, wbmp.
 According to the graphviz dot manual: 
 http://www.graphviz.org/Documentation/dotguide.pdf
 
-### Supported .ASD formats
+### Supported .ASD syntax
 
-For now, only the simplest <system-name>.asd formats are supported,
+For now, only the simplest <system-name>.asd syntax is supported,
 e.g.:
 
 ```common-lisp
@@ -60,7 +55,7 @@ e.g.:
   :components ((:file "packages")
                (:file "macros" :depends-on ("packages"))
                (:file "hello" :depends-on ("macros"))))
-```
+```	       	      
 
 This example is from the [ASDF Manual](https://common-lisp.net/project/asdf/asdf.html#The-defsystem-form)
 
