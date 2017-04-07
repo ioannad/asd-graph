@@ -1,4 +1,5 @@
-digraph jeffrey {splines=ortho;
+digraph jeffrey {
+splines=ortho;
 rankdir = LR;
 node [shape=box];"read" -> "graph";
 "read" -> "parse";

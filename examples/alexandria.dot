@@ -1,4 +1,5 @@
-digraph alexandria {splines=ortho;
+digraph alexandria {
+splines=ortho;
 rankdir = LR;
 node [shape=box];"io" -> "macros";
 "io" -> "lists";
