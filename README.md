@@ -31,6 +31,7 @@ directory as `<file-name>`, or in `<output-dir>` if keyword
 ### Example usage
 
 `(asd-graph "~/quicklisp/local-projects/jeffrey/jeffrey.asd")`
+
 `(asd-graph "~/quicklisp/local-projects/jeffrey/jeffrey.asd" :format "pdf")`
 
 ### Formats supported by dot:
