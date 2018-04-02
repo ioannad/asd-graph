@@ -144,6 +144,6 @@ node [shape=box];")
      "/usr/bin/dot"
      (list
       (format nil "-T~a" format)
-      (filename output-dir system-name "dot")
+      (merge-pathnames (filename output-dir system-name "dot"))
       "-o"
-      (filename output-dir system-name format)))))
+      (merge-pathnames (filename output-dir system-name format))))))

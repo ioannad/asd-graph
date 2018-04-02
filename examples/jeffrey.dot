@@ -1,26 +1,35 @@
 digraph jeffrey {
 splines=ortho;
 rankdir = LR;
-node [shape=box];"read" -> "graph";
-"read" -> "parse";
-"read" -> "process-strings";
-"predicates" -> "graph";
-"predicates" -> "read";
-"draw" -> "graph";
-"draw" -> "read";
-"draw" -> "predicates";
-"labelmaker" -> "graph";
-"labelmaker" -> "read";
-"main" -> "graph";
-"main" -> "read";
-"main" -> "predicates";
-"main" -> "draw";
-"latex-in-html" -> "graph";
-"website" -> "main";
-"website" -> "parse-web-input";
-"website" -> "latex-in-html";
-"example-form-groups" -> "main";
-"test" -> "graph";
-"test" -> "read";
-"test" -> "predicates";
+node [shape=box];
+
+subgraph clustercore { "read" "graph" "draw" "predicates"; label="core"; color="0.0, 0.3, 1.0"; style=filled; }
+
+subgraph clusterparse { "parse" "process-strings" "latex-in-html" "parse-web-input"; label="parse"; color="0.2, 0.3, 1.0"; style=filled; }
+
+subgraph clusterutil { "example-form-groups" "labelmaker"; label="util"; color="0.4, 0.3, 1.0"; style=filled; }
+
+subgraph clusterweb { "website" "web-draw"; label="web"; color="0.6, 0.3, 1.0"; style=filled; }
+
+subgraph clustertest { "test"; label="test"; color="0.8, 0.3, 1.0"; style=filled; }
+
+"read" -> { "graph"  "parse"  "process-strings" };
+
+"predicates" -> { "graph"  "read" };
+
+"draw" -> { "graph"  "read"  "predicates" };
+
+"labelmaker" -> { "graph"  "read" };
+
+"main" -> { "graph"  "read"  "predicates"  "draw" };
+
+"latex-in-html" -> { "graph" };
+
+"website" -> { "main"  "web-draw"  "parse-web-input"  "latex-in-html" };
+
+"example-form-groups" -> { "main" };
+
+"test" -> { "graph"  "read"  "predicates" };
+
+
 }

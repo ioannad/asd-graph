@@ -16,9 +16,7 @@ declared in a Common Lisp `<system-name>.asd` file.
 
 ## Usage
 
-Load this file in a Common Lisp REPL (tested with CCL and SBCL), 
-and if `<file-name>` is your path (including the path to the file)
-to your `<system-name>.asd`, then evaluate:
+Load this file in a Common Lisp REPL (tested with CCL and SBCL), and if `<file-name>` is the path (including the path to the file) to the `<system-name>.asd` you would like to draw the graph of, then evaluate:
 
 `(asd-graph <file-name>)`
 
@@ -29,6 +27,11 @@ optional keywords:
 This will create a dot and an svg (or `<fmt>` if keyword :format was used) file in the same
 directory as `<file-name>`, or in `<output-dir>` if keyword
 :output-dir was used.
+
+### Example usage
+
+`(asd-graph "~/quicklisp/local-projects/jeffrey/jeffrey.asd")`
+`(asd-graph "~/quicklisp/local-projects/jeffrey/jeffrey.asd" :format "pdf")`
 
 ### Formats supported by dot:
 
