@@ -12,8 +12,8 @@ See REAMDE.md file for more details.
 
 ;; # Code
 
-(ql:quickload :maxpc)
-(ql:quickload :external-program)
+(ql:quickload :maxpc :silent t)
+(ql:quickload :external-program :silent t)
 
 ;; ## Parsing
 
@@ -120,7 +120,8 @@ rankdir = LR;
 node [shape=box];")
 
 (defvar *dot-ending*
-  "}")
+  "}
+")
 
 (defun dot-beginning (system-name)
   (format nil "digraph ~a {" system-name))
