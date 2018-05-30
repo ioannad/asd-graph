@@ -12,8 +12,8 @@ See REAMDE.md file for more details.
 
 ;; # Code
 
-(ql:quickload :maxpc)
-(ql:quickload :external-program)
+(ql:quickload :maxpc :silent t)
+(ql:quickload :external-program :silent t)
 
 ;; ## Parsing
 
@@ -114,6 +114,7 @@ See REAMDE.md file for more details.
 
 (defun format-dot-beginning (stream system-name)
   (format stream "digraph \"~a\" {~%" system-name))
+
 
 (defun format-dot-settings (stream)
   (format stream "~%splines=ortho; ~%rankdir = LR; ~%node [shape=box]; ~%"))
