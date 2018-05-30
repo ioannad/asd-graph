@@ -67,8 +67,8 @@ See REAMDE.md file for more details.
 ;;
 ;; References to \"packages\" or "\"package\"" are removed.
 
-(defun get-deps (file-name)
-  (with-open-file (in file-name
+(defun get-deps (asd-pathname)
+  (with-open-file (in asd-pathname
 		      :direction :input
 		      :if-does-not-exist :error)
     (maxpc:parse in (=deps))))
@@ -79,8 +79,8 @@ See REAMDE.md file for more details.
 		"\"package\"")
 	  :test 'equal))
 
-(defun deps (file-name)
-  (loop for (file deps) in (get-deps file-name)
+(defun deps (asd-pathname)
+  (loop for (file deps) in (get-deps asd-pathname)
      for clean-deps = (loop for d in deps
 			 unless (packages-string-p d)
 			 collect d)
@@ -89,18 +89,27 @@ See REAMDE.md file for more details.
   
 ;; ## Manipulating file and path names
 
-(defun split-path (file-name)
-  (let ((name-start (+ 1 (search "/" file-name :from-end T))))
-    (list
-     (subseq file-name 0 name-start)
-     (subseq file-name name-start (- (length file-name) 4)))))
+(defun resolve-tilde (path)
+  "Returns a pathname from PATH, with the ~ referring to the user's home directory."
+  (if (equal "~/" (subseq path 0 2))
+      (merge-pathnames (subseq path 2)
+		       (user-homedir-pathname))
+      (pathname path)))
 
-(defun filename (path name ending)
-  (concatenate 'string
-	       path
-	       name
-	       "."
-	       ending))
+(defun split-path (asd-filename)
+  "Returns three values: the resolved asd-pathname, the system-name, and the
+ directory pathname to the file-name."
+  (let* ((asd-pathname (resolve-tilde asd-filename))
+	 (system-name (pathname-name asd-pathname))
+	 (directory-pathname (make-pathname
+			      :directory
+			      (pathname-directory asd-pathname))))
+    (values asd-pathname system-name directory-pathname)))
+
+(defun make-file-pathname (output-pathname name format)
+  (let ((filename (format nil "~a.~a" name format)))
+    (merge-pathnames filename output-pathname)))
+  
 
 ;; ## Outputting dot syntax
 
@@ -122,28 +131,42 @@ node [shape=box];")
 	     (format nil "~a -> ~a;" file d)))
       (format nil "~{~a~%~}" (mapcar #'format% dep-list)))))
 
-(defun asd->dot (path file-name system-name)
-    (with-open-file (out (filename path system-name "dot")
-			 :direction :output
-			 :if-exists :supersede)
-      (format out (dot-beginning system-name))
-      (format out *dot-settings*)
-      (loop for dep in (deps file-name)
-	 do (format out (dep->dot dep)))
-      (format out *dot-ending*)))
+;; The following should get exported too, when this becomes a system.
+
+(defun asd->dot (asd-filename stream)
+  "Prins a string with the contents of the dot file to stream."
+  (multiple-value-bind (asd-pathname system-name)
+      (split-path asd-filename)
+    (format stream (dot-beginning system-name))
+    (format stream *dot-settings*)
+    (loop for dep in (deps asd-pathname)
+       do (format stream (dep->dot dep)))
+    (format stream *dot-ending*)))
 
 ;; ## The main function
 
-(defun asd-graph (file-name &key (output-dir nil) (format "svg"))
-  (destructuring-bind
-	(path system-name) (split-path file-name)
-    (unless output-dir
-      (setf output-dir path))
-    (asd->dot output-dir file-name system-name)
-    (external-program:run
-     "/usr/bin/dot"
-     (list
-      (format nil "-T~a" format)
-      (merge-pathnames (filename output-dir system-name "dot"))
-      "-o"
-      (merge-pathnames (filename output-dir system-name format))))))
+(defun asd-graph (asd-filename &key (output-dir nil) (format "svg"))
+  "Creates a SYSTEM-NAME.dot and a SYSTEM-NAME.FORMAT file."
+  (multiple-value-bind (asd-pathname system-name directory-pathname)
+      (split-path asd-filename)
+    (declare (ignorable asd-pathname))
+    (let ((output-pathname (if output-dir
+			       (resolve-tilde output-dir)
+			       directory-pathname)))
+      (with-open-file (out (make-file-pathname output-pathname
+					       system-name
+					       "dot")
+			   :direction :output
+			   :if-exists :supersede)
+	(asd->dot asd-filename out))
+      (external-program:run
+       "/usr/bin/dot"
+       (list
+	(format nil "-T~a" format)
+	(make-file-pathname output-pathname
+			    system-name
+			    "dot")
+	"-o"
+	(make-file-pathname output-pathname
+			    system-name
+			    format))))))
