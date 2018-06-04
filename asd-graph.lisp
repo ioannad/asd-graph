@@ -91,7 +91,7 @@ See REAMDE.md file for more details.
 
 (defun resolve-tilde (path)
   "Returns a pathname from PATH, with the ~ referring to the user's home directory."
-  (if (equal "~/" (subseq path 0 2))
+  (if (equal #\~ (first (coerce path 'list)))
       (merge-pathnames (subseq path 2)
 		       (user-homedir-pathname))
       (pathname path)))
