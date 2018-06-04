@@ -1,4 +1,4 @@
-require(stringi)
+# require(stringi)
 require(shiny)
 require(DiagrammeR)
 
@@ -7,21 +7,29 @@ ui <- fluidPage(h1("asd-graph in R"),
                 fileInput(inputId="asd",
                           label="Upload your *.asd file here.",
                           accept=".asd"),
-                textOutput(outputId="test", container=div),
+#                textOutput(outputId="test", container=div),
                 grVizOutput("graph")
                 )
 
 server <- function(input, output) {
 
-    asd <- reactive(input$asd)
+    asdfile <- reactive({
+        asd <- input$asd
+        if (is.null(asd)) return(NULL)
+        asd})
+    
     output$graph <- renderDiagrammeR({
-        evalexpression <- paste0("'(asd->dot \"",
-                                 "~/quicklisp/local-projects/jeffrey/jeffrey.asd",
-                                 "\" *standard-output*)'")
+        if (is.null(asdfile())) return(NULL)
+
+        evalexpression <- paste0("\'(asd->dot \"",
+                                 asdfile()$datapath,
+                                 "\" *standard-output*)\'")
+
         dottext <- system2('sbcl',
                            args=c("--noinform", "--load", "\"asd-graph.lisp\"",
                                   "--eval", evalexpression, "--eval", "'(quit)'"),
-                           stdout = TRUE)
+                           stdout = TRUE, wait=T)
+        
         DiagrammeR::grViz(diagram = dottext)
     })
 }
