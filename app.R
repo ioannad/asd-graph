@@ -8,7 +8,7 @@ ui <- fluidPage(h1("asd-graph in R"),
                           label="Upload your *.asd file here.",
                           accept=".asd"),
 #                textOutput(outputId="test", container=div),
-                grVizOutput("graph")
+                grVizOutput("graph", width = "100%", height = "100%")
                 )
 
 server <- function(input, output) {
