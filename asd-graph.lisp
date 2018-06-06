@@ -48,8 +48,8 @@ See REAMDE.md file for more details.
 		   parser
 		   (maxpc.char:?string ")"))))
 
-(defun =dep ()
-  (maxpc:=destructure (_ file deps _)
+(defun =dependency ()
+  (maxpc:=destructure (_ file dependencies _)
       (maxpc:=list (%skip-up-to-string ":file")
 		   (=quoted-word)
 		   (maxpc:%maybe
@@ -58,20 +58,20 @@ See REAMDE.md file for more details.
 		     (%skip-whitespace)
 		     (=in-parens (maxpc:%some (=quoted-word)))))
 		   (maxpc.char:?string ")"))
-    (list file (third deps))))
+    (list file (third dependencies))))
   
-(defun =deps ()
-  (maxpc:%some (=dep)))
+(defun =dependencies ()
+  (maxpc:%some (=dependency)))
 
 ;; ## Extracting dependencies
 ;;
 ;; References to \"packages\" or "\"package\"" are removed.
 
-(defun get-deps (asd-pathname)
+(defun get-dependencies (asd-pathname)
   (with-open-file (in asd-pathname
 		      :direction :input
 		      :if-does-not-exist :error)
-    (maxpc:parse in (=deps))))
+    (maxpc:parse in (=dependencies))))
 
 (defun packages-string-p (string)
   (member string
@@ -79,13 +79,13 @@ See REAMDE.md file for more details.
 		"\"package\"")
 	  :test 'equal))
 
-(defun deps (asd-pathname)
-  (loop for (file deps) in (get-deps asd-pathname)
-     for clean-deps = (loop for d in deps
-			 unless (packages-string-p d)
-			 collect d)
+(defun dependencies (asd-pathname)
+  (loop for (file dependencies) in (get-dependencies asd-pathname)
+     for clean-dependencies = (loop for dependency in dependencies
+				 unless (packages-string-p dependency)
+				 collect dependency)
      unless (packages-string-p file)
-     collect (list file clean-deps)))
+     collect (list file clean-dependencies)))
   
 ;; ## Manipulating file and path names
 
@@ -110,38 +110,38 @@ See REAMDE.md file for more details.
   (let ((filename (format nil "~a.~a" name format)))
     (merge-pathnames filename output-pathname)))
   
-
 ;; ## Outputting dot syntax
 
-(defvar *dot-settings*
-  "
-splines=ortho;
-rankdir = LR;
-node [shape=box];")
+(defun format-dot-beginning (stream system-name)
+  (format stream "digraph \"~a\" {~%" system-name))
 
-(defvar *dot-ending*
-  "}")
+(defun format-dot-settings (stream)
+  (format stream "~%splines=ortho; ~%rankdir = LR; ~%node [shape=box]; ~%"))
 
-(defun dot-beginning (system-name)
-  (format nil "digraph ~a {" system-name))
+(defun format-dot-ending (stream)
+  (format stream "~%}~%"))
 
-(defun dep->dot (dep)
-  (destructuring-bind (file dep-list) dep
-    (labels ((format% (d)
-	     (format nil "~a -> ~a;" file d)))
-      (format nil "~{~a~%~}" (mapcar #'format% dep-list)))))
+(defun format-dot-node (stream file)
+  (format stream "~a;~%" file))
 
+(defun format-dot-dependency (stream dependency)
+  (destructuring-bind (file dependency-list) dependency
+    (when dependency-list
+      (format stream "~a -> {~{~a ~}}~%" file dependency-list))))
+	      
 ;; The following should get exported too, when this becomes a system.
 
 (defun asd->dot (asd-filename stream)
   "Prins a string with the contents of the dot file to stream."
   (multiple-value-bind (asd-pathname system-name)
       (split-path asd-filename)
-    (format stream (dot-beginning system-name))
-    (format stream *dot-settings*)
-    (loop for dep in (deps asd-pathname)
-       do (format stream (dep->dot dep)))
-    (format stream *dot-ending*)))
+    (format-dot-beginning stream system-name)
+    (format-dot-settings stream)
+    (loop for dependency in (dependencies asd-pathname)
+       for file = (first dependency)
+       do (format-dot-node stream file)
+       do (format-dot-dependency stream dependency))
+    (format-dot-ending stream)))
 
 ;; ## The main function
 
