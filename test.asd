@@ -2,7 +2,7 @@
 
 ;; some comment
 
-(defsystem #:bar
+(defsystem test
   :components ((:file "packages")
 	       (:file "package")
 	       (:file "baz"
