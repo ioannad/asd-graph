@@ -1,22 +1,62 @@
 #|
 
-# ASD-GRAPH
-
+* ASD-GRAPH
 
 This utility uses Graphviz Draw to visualise the dependencies
 declared in a Common Lisp `<system-name>.asd` file.
 
+Its designed to be run as a file with the location of the asd file to be drawn,
+as argument:
+
+Usage:
+(load "asd-graph.lisp")
+(asd-graph "~/path/to/asd-filename.asd")
+
+Note: Unlike ASDF, asd-graph does not requirs that your .asd file has the same
+name as the system you are defining. But only the first defined system will be 
+used!
+
 See REAMDE.md file for more details.
+
+
+* TODO: Address safety concerns about using the READer
+* TODO: Reconsider: 
+        In the case of an .asd file with multiple 'DEFSYSTEM definitions,
+        would ASDF choose the definition which matches the file name?
+        If so, asd-graph should, too. 
 
 |#
 
-;; # Code
+;; * Code
 
 (ql:quickload :external-program)
 
-;; ## Extracting system-definition
+;; ** Extracting system-definition and components, counting modules
 ;;
-;; References to \"packages\" or "\"package\"" are removed.
+;; References to "packages" or "package" are removed.
+
+(defun packages-string-p (string)
+  (member string
+	  (list "packages"
+		"package")
+	  :test 'equal))
+
+(defun get-components (system-definition)
+  (loop for component in (getf system-definition :components)
+     unless (packages-string-p (second component))
+     collect component))
+
+(defun module-p (component)
+  (equal :module (first component)))
+
+(defun count-modules (system-definition)
+  (loop for component in (get-components system-definition)
+     counting (module-p component)))
+
+(defun add-module-count (system-definition)
+  (append system-definition
+	  (list :amount-of-modules
+		(count-modules system-definition))))
 
 (defun get-system-definition (asd-pathname)
   (with-open-file (in asd-pathname
@@ -25,20 +65,10 @@ See REAMDE.md file for more details.
     (loop for system-definition = (read in)
        until (or (not system-definition)
 		 (equal 'DEFSYSTEM (first system-definition)))
-       finally (return system-definition))))
+       finally
+	 (return (add-module-count system-definition)))))
 
-(defun packages-string-p (string)
-  (member string
-	  (list "packages"
-		"package")
-	  :test 'equal))
 
-(defun components (asd-pathname)
-  (let ((system-definition (get-system-definition pathname)))
-    (loop for component in (getf system-definition :components)
-     unless (packages-string-p (second component))
-     collect component)))
-  
 ;; ## Manipulating file and path names
 
 (defun resolve-tilde (path)
@@ -48,19 +78,19 @@ See REAMDE.md file for more details.
 		       (user-homedir-pathname))
       (pathname path)))
 
-(defun split-path (asd-filename)
-  "Returns three values: the resolved asd-pathname, the system-name, and the
- directory pathname to the file-name."
-  (let* ((asd-pathname (resolve-tilde asd-filename))
-	 (system-name (pathname-name asd-pathname))
-	 (directory-pathname (make-pathname
-			      :directory
-			      (pathname-directory asd-pathname))))
-    (values asd-pathname system-name directory-pathname)))
+(defun get-path (asd-filename)
+  (resolve-tilde asd-filename))
 
-(defun make-file-pathname (output-pathname name format)
+(defun get-directory (asd-pathname)
+  (make-pathname :directory
+		 (pathname-directory asd-pathname)))
+
+(defun get-system-name (system-definition)
+  (format nil "~(~a~)" (second system-definition)))
+  
+(defun make-file-pathname (output-directory-path name format)
   (let ((filename (format nil "~a.~a" name format)))
-    (merge-pathnames filename output-pathname)))
+    (merge-pathnames filename output-directory-path)))
   
 ;; ## Outputting dot syntax
 
@@ -83,15 +113,22 @@ See REAMDE.md file for more details.
     (when dependency-list
       (format stream "~a -> {~{~a ~}}~%" name dependency-list))))
 
+;; * Rendering with shiny R () in the branch =shiny-R=
+;;
 ;; The following should get exported too, when this becomes a system.
+;; It is used by the shiny R app, which can be found in the shiny-R
+;; branch. With R and the library shiny installed on a server, it creates
+;; a website on which you can upload .asd files and graph them.
+;;
 
 (defun asd->dot (asd-filename stream)
   "Prins a string with the contents of the dot file to stream."
-  (multiple-value-bind (asd-pathname system-name)
-      (split-path asd-filename)
+  (let* ((asd-pathname (get-path asd-filename))
+	 (system-definition (get-system-definition asd-pathname))
+	 (system-name (get-system-name system-definition)))
     (format-dot-beginning stream system-name)
     (format-dot-settings stream)
-    (loop for component in (components asd-pathname)
+    (loop for component in (get-components system-definition)
        for name = (second component)
        do (format-dot-node stream name)
        do (format-dot-component stream component))
@@ -106,25 +143,25 @@ See REAMDE.md file for more details.
 	(make-file-pathname output-pathname
 			    system-name
 			    format)))
-  
 
 ;; ## The main function
 
 (defun asd-graph (asd-filename &key (output-dir nil) (format "svg"))
   "Creates a SYSTEM-NAME.dot and a SYSTEM-NAME.FORMAT file."
-  (multiple-value-bind (asd-pathname system-name directory-pathname)
-      (split-path asd-filename)
-    (declare (ignorable asd-pathname))
-    (let ((output-pathname (if output-dir
-			       (resolve-tilde output-dir)
-			       directory-pathname)))
-      (with-open-file (out (make-file-pathname output-pathname
-					       system-name
-					       "dot")
-			   :direction :output
-			   :if-exists :supersede)
-	(asd->dot asd-filename out))
-      (external-program:run  "/usr/bin/dot"
-			     (external-dot-arguments format
-						     output-pathname
-						     system-name)))))
+  (let* ((asd-pathname (get-path asd-filename))
+	 (system-definition (get-system-definition asd-pathname))
+	 (system-name (get-system-name system-definition))
+	 (directory-pathname (get-directory asd-pathname))
+	 (output-pathname (if output-dir
+			      (get-path output-dir)
+			      directory-pathname)))
+    (with-open-file (out (make-file-pathname output-pathname
+					     system-name
+					     "dot")
+			 :direction :output
+			 :if-exists :supersede)
+      (asd->dot asd-filename out))
+    (external-program:run  "/usr/bin/dot"
+			   (external-dot-arguments format
+						   output-pathname
+						   system-name))))
