@@ -12,80 +12,32 @@ See REAMDE.md file for more details.
 
 ;; # Code
 
-(ql:quickload :maxpc)
 (ql:quickload :external-program)
 
-;; ## Parsing
-
-(defun =text-until (parser)
-  "The input, which `parser` parses is not consumed."
-  (maxpc:=subseq (maxpc:%some (maxpc:?not parser))))
-
-(defun %skip-up-to-string (string)
-  (maxpc:=destructure (_ _)
-      (maxpc:=list (=text-until #1=(maxpc.char:?string string))
-		   #1#)))
-
-(defun %quote ()
-  (maxpc.char:?string "\""))
-
-(defun %skip-whitespace ()
-  (maxpc:%any
-    (maxpc.char:?whitespace)))
-
-(defun =quoted-word ()
-  (maxpc:=destructure (_ list _)
-      (maxpc:=list (%skip-whitespace)
-		   (maxpc:=subseq
-		    (maxpc:?seq (%quote)
-				(=text-until (%quote))
-				(%quote)))
-		   (%skip-whitespace))))
-
-(defun =in-parens (parser)
-  (maxpc:=destructure (_ content _)
-      (maxpc:=list (maxpc.char:?string "(")
-		   parser
-		   (maxpc.char:?string ")"))))
-
-(defun =dependency ()
-  (maxpc:=destructure (_ file dependencies _)
-      (maxpc:=list (%skip-up-to-string ":file")
-		   (=quoted-word)
-		   (maxpc:%maybe
-		    (maxpc:=list
-		     (maxpc.char:?string ":depends-on ")
-		     (%skip-whitespace)
-		     (=in-parens (maxpc:%some (=quoted-word)))))
-		   (maxpc.char:?string ")"))
-    (list file (third dependencies))))
-  
-(defun =dependencies ()
-  (maxpc:%some (=dependency)))
-
-;; ## Extracting dependencies
+;; ## Extracting system-definition
 ;;
 ;; References to \"packages\" or "\"package\"" are removed.
 
-(defun get-dependencies (asd-pathname)
+(defun get-system-definition (asd-pathname)
   (with-open-file (in asd-pathname
 		      :direction :input
 		      :if-does-not-exist :error)
-    (maxpc:parse in (=dependencies))))
+    (loop for system-definition = (read in)
+       until (or (not system-definition)
+		 (equal 'DEFSYSTEM (first system-definition)))
+       finally (return system-definition))))
 
 (defun packages-string-p (string)
   (member string
-	  (list "\"packages\""
-		"\"package\"")
+	  (list "packages"
+		"package")
 	  :test 'equal))
 
-(defun dependencies (asd-pathname)
-  (loop for (file dependencies) in (get-dependencies asd-pathname)
-     for clean-dependencies = (loop for dependency in dependencies
-				 unless (packages-string-p dependency)
-				 collect dependency)
-     unless (packages-string-p file)
-     collect (list file clean-dependencies)))
+(defun components (asd-pathname)
+  (let ((system-definition (get-system-definition pathname)))
+    (loop for component in (getf system-definition :components)
+     unless (packages-string-p (second component))
+     collect component)))
   
 ;; ## Manipulating file and path names
 
@@ -124,11 +76,13 @@ See REAMDE.md file for more details.
 (defun format-dot-node (stream file)
   (format stream "~a;~%" file))
 
-(defun format-dot-dependency (stream dependency)
-  (destructuring-bind (file dependency-list) dependency
+(defun format-dot-component (stream component)
+  (let ((name (second component))
+	(dependency-list (getf component :depends-on))
+	);;add here nested component support
     (when dependency-list
-      (format stream "~a -> {~{~a ~}}~%" file dependency-list))))
-	      
+      (format stream "~a -> {~{~a ~}}~%" name dependency-list))))
+
 ;; The following should get exported too, when this becomes a system.
 
 (defun asd->dot (asd-filename stream)
@@ -137,11 +91,22 @@ See REAMDE.md file for more details.
       (split-path asd-filename)
     (format-dot-beginning stream system-name)
     (format-dot-settings stream)
-    (loop for dependency in (dependencies asd-pathname)
-       for file = (first dependency)
-       do (format-dot-node stream file)
-       do (format-dot-dependency stream dependency))
+    (loop for component in (components asd-pathname)
+       for name = (second component)
+       do (format-dot-node stream name)
+       do (format-dot-component stream component))
     (format-dot-ending stream)))
+
+(defun external-dot-arguments (format output-pathname system-name)
+  (list	(format nil "-T~a" format)
+	(make-file-pathname output-pathname
+			    system-name
+			    "dot")
+	"-o"
+	(make-file-pathname output-pathname
+			    system-name
+			    format)))
+  
 
 ;; ## The main function
 
@@ -159,14 +124,7 @@ See REAMDE.md file for more details.
 			   :direction :output
 			   :if-exists :supersede)
 	(asd->dot asd-filename out))
-      (external-program:run
-       "/usr/bin/dot"
-       (list
-	(format nil "-T~a" format)
-	(make-file-pathname output-pathname
-			    system-name
-			    "dot")
-	"-o"
-	(make-file-pathname output-pathname
-			    system-name
-			    format))))))
+      (external-program:run  "/usr/bin/dot"
+			     (external-dot-arguments format
+						     output-pathname
+						     system-name)))))
