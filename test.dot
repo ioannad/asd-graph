@@ -1,0 +1,12 @@
+digraph "test" {
+
+splines=ortho; 
+rankdir = LR; 
+node [shape=box]; 
+baz;
+baz -> {x Z }
+bla;
+blah;
+blah -> {x bla Z }
+
+}
