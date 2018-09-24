@@ -1,12 +1,33 @@
 digraph "test" {
-
+overlap=false; 
 splines=ortho; 
 rankdir = LR; 
 node [shape=box]; 
-baz;
-baz -> {x Z }
-bla;
-blah;
-blah -> {x bla Z }
+ranksep=1.5; 
+compound=true; 
+"baz";
+"baz" -> "x" ; 
+"baz" -> "Z" ; 
+"bla";
+subgraph "clusterblah" {
+"blah" [shape=point style=invis];
+label="blah";
+style=filled;
+color="0.33333334, 0.4, 1.0";
+"a";
+subgraph "clusterboo" {
+"boo" [shape=point style=invis];
+label="boo";
+style=filled;
+color="0.6666667, 0.4, 1.0";
+"voo";
+"goo";
+                        }
+"boo" -> "baz" [ltail="clusterboo";]; 
+"b";
+                        }
+"blah" -> "x" [ltail="clusterblah";]; 
+"blah" -> "bla" [ltail="clusterblah";]; 
+"blah" -> "Z" [ltail="clusterblah";]; 
 
 }

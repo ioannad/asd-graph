@@ -12,5 +12,9 @@
 			:pathname "src"
 			:depends-on ("x" "bla" z)
 			:components ((:file "a")
+				     (:module "boo"
+					      :depends-on ("baz")
+					      :components ((:file "voo")
+							   (:file "goo")))
 				     (:file "b"))))
   :depends-on ("g" h))
